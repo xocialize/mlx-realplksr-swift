@@ -69,8 +69,10 @@ public final class RealPLKSRUpscalePackage: ModelPackage {
                 //   residentBytes        0.1 GB   (measured floor 0.05 GB — the app's baseline + 29.6 MB of weights)
                 //   peakActivationBytes  6.92 GB × 1.2 + 0.256 GB ≈ 8.6 GB
                 // This replaces the PROVISIONAL 1.05 + 11.5 GB of v0.1.0, derived from the MLX peak through
-                // Real-ESRGAN's in-app ratios. That figure over-declared by ~1.8× and made the governor refuse this
-                // package outright on a 16 GB Mac (budget ≈ 11.8 GB), where 8.7 GB now fits.
+                // Real-ESRGAN's in-app ratios. That figure over-declared by ~1.8×: against a 16 GB Mac's budget
+                // (≈ 12.7 GB — the engine's ~74% note) its 12.55 GB left ~0.15 GB of headroom, so the governor could
+                // admit this package only after evicting everything else and refused it whenever anything else held
+                // memory. 8.7 GB leaves ~4 GB. (v0.1.1's comment said "refused outright … budget ≈ 11.8 GB" — wrong.)
                 // ⚠️ The basis assumes a MANAGED MLX pool. A host whose engine runs `.unmanaged` — or a `swift test`
                 // process, where the engine's init-time cap write fails on the first MLX touch — keeps a growing pool
                 // and reads far higher phys (24.4 GB after a HEART run, measured). That is the pool, not this package.
