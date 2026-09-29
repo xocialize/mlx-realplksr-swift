@@ -53,17 +53,29 @@ public final class RealPLKSRUpscalePackage: ModelPackage {
                 //   1920×1080   7680×4320    whole-frame   36.9 s    4863 MB   29 MB  1208 MB
                 //   (* first run includes ~14 s of MLX compile; the tiled path trades 33% wall-clock for 16% peak)
                 //
-                // DECLARED at the 4× envelope the default `wholeFrameMaxPixels` admits (1920×1080 in),
-                // converted from MLX-peak to the in-app `phys_footprint` basis the governor compares
-                // against, using the ratios the SIBLING measured on both bases (mlx-realesrgan-swift
-                // EFFICIENCY-ADOPTION.md: smoke floor ~3 MB → in-app 1.02 GB, i.e. ~1.02 GB of process
-                // overhead; smoke act 2.2 GB → in-app 5.24 GB, ×2.38):
-                //   residentBytes        ≈ 1.02 GB process floor + 29.6 MB weights  = 1.05 GB
-                //   peakActivationBytes  ≈ 4.83 GB × 2.38                           = 11.5 GB
-                // ⚠️ PROVISIONAL — derived, not measured in-app. RE-BASELINE to real `phys_footprint`
-                // with the image-fleet batch (AB-T-0019) and replace both numbers. Hosts on small-memory
-                // machines lower `wholeFrameMaxPixels` (the tiled path at 1024² measured 16% lower peak).
-                footprints: [QuantFootprint(quant: .fp32, residentBytes: 1_050_000_000, peakActivationBytes: 11_500_000_000)],
+                // DECLARED on the in-app `phys_footprint` basis the governor compares against — MEASURED
+                // 2026-09-29 (AB-T-0019) in the ForgeOptimizer app (Release; ForgeCore 0.27.0; engine 0.63.0 with
+                // its 2 GiB MLX pool cap applied; M5 Max 128 GB, macOS 27.2), one fresh process per run through the
+                // app's `UpscaleMemoryBench`: prepare → trim the MLX pool → floor → run under a 10 ms phys sampler.
+                //
+                //   input       output       mode          floor     activation (run peak − floor)    lifetime peak
+                //   1080×1920   4320×7680    whole-frame   0.05 GB   6.47 · 6.47 · 6.63 · 6.92 GB     6.52–6.99 GB
+                //   1080×1920   2160×3840    whole-frame   0.05 GB   6.47 GB (×2 = native ×4, downsampled)
+                //   2160×3840   8640×15360   tiled 256/32  0.05 GB   3.60 GB                          3.69 GB
+                //
+                // The 1080p-input whole frame is the envelope's worst case: the default `wholeFrameMaxPixels` admits
+                // exactly it, and every larger input tiles. Declared with the fleet's harness headroom (×1.2 + 256 MB,
+                // as mlx-nerve-swift N6 declares):
+                //   residentBytes        0.1 GB   (measured floor 0.05 GB — the app's baseline + 29.6 MB of weights)
+                //   peakActivationBytes  6.92 GB × 1.2 + 0.256 GB ≈ 8.6 GB
+                // This replaces the PROVISIONAL 1.05 + 11.5 GB of v0.1.0, derived from the MLX peak through
+                // Real-ESRGAN's in-app ratios. That figure over-declared by ~1.8× and made the governor refuse this
+                // package outright on a 16 GB Mac (budget ≈ 11.8 GB), where 8.7 GB now fits.
+                // ⚠️ The basis assumes a MANAGED MLX pool. A host whose engine runs `.unmanaged` — or a `swift test`
+                // process, where the engine's init-time cap write fails on the first MLX touch — keeps a growing pool
+                // and reads far higher phys (24.4 GB after a HEART run, measured). That is the pool, not this package.
+                // Hosts on small-memory machines can still lower `wholeFrameMaxPixels` (tiled measured ~half the peak).
+                footprints: [QuantFootprint(quant: .fp32, residentBytes: 100_000_000, peakActivationBytes: 8_600_000_000)],
                 requiredBackends: [.metalGPU],
                 os: OSRequirement(minMacOS: SemanticVersion(major: 26, minor: 0, patch: 0)),
                 chipFloor: nil

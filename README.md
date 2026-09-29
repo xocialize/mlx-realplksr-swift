@@ -50,8 +50,9 @@ fine texture the perceptual losses target — the recipe's trade, by design.
 - **C0–C14** offline in `Tests/MLXRealPLKSRTests` (manifest, licences, requirements, descriptor, codec
   seams), **MAT-1..5** (`MaterializationConformance`), **CAN-1..3** (`CancellationConformance`).
 - **Live**: `swift run -c release realplksr-smoke <image.png> <out.png> [webphoto] [wholeFrameMaxPixels]`
-  — real engine path, timing, luminance sanity, and the memory report the manifest's footprint is declared
-  from (see the manifest comment on the provisional in-app ratio).
+  — real engine path, timing, luminance sanity, and an MLX-peak memory report. The manifest's footprint is
+  declared on the in-app `phys_footprint` basis instead (0.1 GB + 8.6 GB since v0.1.1, measured in the
+  ForgeOptimizer app — see the manifest comment); the smoke's MLX peak under-reads that basis.
 
 ```bash
 swift build -c release
